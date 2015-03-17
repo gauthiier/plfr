@@ -63,18 +63,36 @@
 
 const char* VERSION = "0.0.0";
 
+int print_usage() {
+    fprintf(stdout, "plfr %s - a command line interface to pilfer annotations from a pdf.\n", VERSION);
+    fprintf(stdout, "usage: plfr [-json] FILE\n");
+    return NO;
+}
+
 int main(int argc, const char * argv[]) {
     
     @autoreleasepool {
         
-        if(argc < 2) {
-            fprintf(stdout, "plfr %s - a command line interface to pilfer annotations from a pdf.\n", VERSION);
-            fprintf(stdout, "usage: plfr FILE\n");
-            return NO;
+        if(argc < 2)
+            return print_usage();
+        else if(argc > 3)
+            return print_usage();
+        
+        NSString *file = NULL;
+        bool json = false;
+        
+        for(int i = 1; i < argc; i++) {
+            NSString *arg = [NSString stringWithUTF8String:argv[i]];
+            if([arg isEqualToString:@"-json"])
+                json = true;
+            else
+                file = arg;
         }
         
+        if(!file)
+            return print_usage();
+        
         NSFileManager *mng = [NSFileManager defaultManager];
-        NSString *file = [NSString stringWithUTF8String:argv[1]];
         if(![mng fileExistsAtPath:file]) {
             NSLog(@"input file '%@' does not exists. aborting...", file);
             return NO;
@@ -85,6 +103,13 @@ int main(int argc, const char * argv[]) {
         if(!doc) {
             NSLog(@"error creating pdf document to read. aborting...");
             return NO;
+        }
+        
+        NSMutableDictionary *dict = NULL;
+        if(json) {
+            dict = [[NSMutableDictionary alloc] init];
+            dict[@"QUOTES"] = [@[] mutableCopy];
+            dict[@"NOTES"] = [@[] mutableCopy];
         }
         
         for(NSUInteger i = 0; i < [doc pageCount]; i++) {
@@ -159,6 +184,14 @@ int main(int argc, const char * argv[]) {
                     if(!txt) continue;
                     
                     // output
+                    if(json) {
+                        [dict[@"QUOTES"] addObject:[NSDictionary dictionaryWithObjectsAndKeys:
+                                                    txt, @"quote",
+                                                    [NSString stringWithFormat:@"%@", @(i)], @"pp",
+                                                    nil]];
+                        continue;
+                    }
+
                     const char* c_txt = [txt UTF8String];
                     fprintf(stdout, "<!--page %lu-->\n\n", i + 1);
                     fprintf(stdout, ">\"%s\" p.%lu\n\n", c_txt, i + 1);
@@ -170,6 +203,15 @@ int main(int argc, const char * argv[]) {
                     
                     if(!txt) continue;
                     
+                    // output
+                    if(json) {
+                        [dict[@"NOTES"] addObject:[NSDictionary dictionaryWithObjectsAndKeys:
+                                                   txt, @"note",
+                                                   [NSString stringWithFormat:@"%@", @(i)], @"pp",
+                                                   nil]];
+                        continue;
+                    }
+                    
                     const char* c_txt = [txt UTF8String];
                     fprintf(stdout, "<!--page %lu-->\n\n", i + 1);
                     fprintf(stdout, "inline note: %s - p.%lu\n\n", c_txt, i + 1);
@@ -177,6 +219,18 @@ int main(int argc, const char * argv[]) {
                 }
             }
         }
+        
+        if(json && dict) {
+            
+            NSData *json_data = [NSJSONSerialization dataWithJSONObject:dict options:kNilOptions error:nil];
+            NSString *json = [[NSString alloc] initWithData:json_data encoding:NSUTF8StringEncoding];
+            
+            const char* c_txt = [json UTF8String];
+            fprintf(stdout, "%s", c_txt);
+
+            
+        }
+        
     }
     return 0;
 }
