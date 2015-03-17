@@ -70,6 +70,7 @@ int main(int argc, const char * argv[]) {
         if(argc < 2) {
             fprintf(stdout, "plfr %s - a command line interface to pilfer annotations from a pdf.\n", VERSION);
             fprintf(stdout, "usage: plfr FILE\n");
+            return NO;
         }
         
         NSFileManager *mng = [NSFileManager defaultManager];
