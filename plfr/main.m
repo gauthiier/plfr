@@ -53,7 +53,7 @@
  MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
  author: gauthiier.info
  ---------------------
- plfr = pilfering highlights and notes from ("binary") pdfs
+ plfr = pilfering highlights and notes from pdfs
  */
 
 #import <Foundation/Foundation.h>
@@ -77,6 +77,7 @@ int main(int argc, const char * argv[]) {
             return print_usage();
         else if(argc > 3)
             return print_usage();
+    
         
         NSString *file = NULL;
         bool json = false;
@@ -89,8 +90,10 @@ int main(int argc, const char * argv[]) {
                 file = arg;
         }
         
-        if(!file)
+        if(!file) {
+            
             return print_usage();
+        }
         
         NSFileManager *mng = [NSFileManager defaultManager];
         if(![mng fileExistsAtPath:file]) {
@@ -128,6 +131,10 @@ int main(int argc, const char * argv[]) {
                     
                     NSString *txt = [seltxt string];
                     
+//                    const char* c_txt_t = [txt UTF8String];
+//                    fprintf(stdout, "text in\n%s",c_txt_t);
+                    
+                    
                     NSArray *quad = [((PDFAnnotationMarkup *) a) quadrilateralPoints];
                     
                     /*
@@ -139,21 +146,55 @@ int main(int argc, const char * argv[]) {
                      |          | h
                      o+----------+
                      
-                     NSLog(@"b: {{ %f, %f} { %f, %f }}", b.origin.x, b.origin.y, b.size.width, b.size.height);
+                     where o denotates the origin
                      
+                     */
+                     
+                     //NSLog(@"b: {{ %f, %f} { %f, %f }}", b.origin.x, b.origin.y, b.size.width, b.size.height);
+                    
+                    /*
                      Quad index order:
                      
                      0+----------+1
                      |           |
                      2+----------+3
                      
-                     for(NSUInteger l = 0; l < [quad count]; l++) {
-                     NSPoint p = [[quad objectAtIndex:l] pointValue];
-                     NSLog(@"    %lu::: { %f, %f}", l, p.x, p.y);
-                     }
                      
                      - - - - - - - - - - -
                      */
+                    
+                    /*
+                    NSUInteger qc = [quad count];
+                    NSUInteger nb = qc / 4;
+                    
+                    NSLog(@"nbr %lu", nb);
+                    
+                    for(NSUInteger k = 0; k < nb; k++) {
+                        NSPoint p2 = [[quad objectAtIndex:(k * nb + 2)] pointValue];
+                        NSPoint p1 = [[quad objectAtIndex:(k * nb + 1)] pointValue];
+                        
+                        CGFloat dx = p1.x - p2.x;
+                        CGFloat dy = p1.y - p2.y;
+                        CGFloat x = b.origin.x + p2.x;
+                        CGFloat y = b.origin.y + p2.y;
+                        
+                        NSLog(@"x %f, y %f, dx %f, dy %f}", x, y, dx, dy);
+                        
+                        NSRect sel = NSMakeRect(x, y, dx, dy);
+                        NSString *b = [[p selectionForRect:sel] string];
+                        
+                        if(b != NULL && [trim(b) length] != 0) {
+                            NSLog(@"%@", b);
+                        }
+                        
+                    }
+                    
+                    for(NSUInteger l = 0; l < [quad count]; l++) {
+                        NSPoint pp = [[quad objectAtIndex:l] pointValue];
+                        NSLog(@"    %lu::: { %f, %f}", l, pp.x, pp.y);
+                    }
+                     */
+                    
                     
                     // strip beggining
                     NSPoint p0 = [[quad objectAtIndex:0] pointValue];
@@ -163,6 +204,11 @@ int main(int argc, const char * argv[]) {
                     NSString *begin = [[p selectionForRect:rb] string];
                     
                     if(begin != NULL && [trim(begin) length] != 0) {
+                        
+//                        const char* c_txt_b = [begin UTF8String];
+//                        fprintf(stdout, "begin: \n%s", c_txt_b);
+                        
+                        
                         txt = [txt stringByReplacingOccurrencesOfString:begin withString:@""];
                     }
                     
@@ -175,6 +221,10 @@ int main(int argc, const char * argv[]) {
                     NSString *end = [[p selectionForRect:re] string];
                     
                     if(end != NULL && [trim(end) length] != 0) {
+                        
+//                        const char* c_txt_e = [end UTF8String];
+//                        fprintf(stdout, "end: \n%s",c_txt_e);
+                        
                         txt = [txt stringByReplacingOccurrencesOfString:end withString:@""];
                     }
                     
@@ -226,7 +276,7 @@ int main(int argc, const char * argv[]) {
             NSString *json = [[NSString alloc] initWithData:json_data encoding:NSUTF8StringEncoding];
             
             const char* c_txt = [json UTF8String];
-            fprintf(stdout, "%s", c_txt);
+            fprintf(stdout, "%s\n", c_txt);
 
             
         }
